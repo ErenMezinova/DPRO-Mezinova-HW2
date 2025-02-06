@@ -38,6 +38,7 @@ df_march31.select('iso_code', 'location', F.round((F.col('total_cases') - F.col(
 
 ![Image](https://github.com/user-attachments/assets/cc18c227-cd34-4f0f-b2ab-7fd551e76db0)
 
+```
 +--------+--------------------+-----------------+
 |iso_code|            location|survivors_percent|
 +--------+--------------------+-----------------+
@@ -57,7 +58,7 @@ df_march31.select('iso_code', 'location', F.round((F.col('total_cases') - F.col(
 |     SYC|          Seychelles|            99.47|
 |     CIV|       Cote d'Ivoire|            99.44|
 +--------+--------------------+-----------------+
-
+```
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -86,6 +87,7 @@ df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number'
 
 ![Image](https://github.com/user-attachments/assets/96400f85-a014-4a56-8d5b-d28cb7baee0b)
 
+```
 +----------+-------------+--------------+
 |      date|     location|max(new_cases)|
 +----------+-------------+--------------+
@@ -100,6 +102,7 @@ df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number'
 |2021-03-25|         Peru|       19206.0|
 |2021-03-26|      Ukraine|       18226.0|
 +----------+-------------+--------------+
+```
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -120,6 +123,7 @@ df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
 
 ![Image](https://github.com/user-attachments/assets/306b9ea8-799f-44a3-91f9-089719c39054)
 
+```
 +----------+---------------+---------+------+
 |      date|yesterday_cases|new_cases| delta|
 +----------+---------------+---------+------+
@@ -131,7 +135,7 @@ df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
 |2021-03-30|         8589.0|   8162.0|-427.0|
 |2021-03-31|         8162.0|   8156.0|  -6.0|
 +----------+---------------+---------+------+
-
+```
 
 
 ---------------------------------------------------------------------------------------------------------------
