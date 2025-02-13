@@ -111,7 +111,7 @@ df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number'
 df_lw_rus = df_lastweek.select('date', 'location', 'new_cases').where(F.col('location').startswith('Rus'))
 
 df_lwrus_window = Window.partitionBy('location').orderBy(F.col('date').asc())
-**df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))**
+df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))
 df_lw_rus = df_lw_rus.withColumn('delta', F.col('new_cases') - F.col('yesterday_cases'))
 
 df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
