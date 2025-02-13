@@ -112,10 +112,10 @@ df_lw_rus = df_lastweek.select('date', 'location', 'new_cases').where(F.col('loc
 
 df_lwrus_window = Window.partitionBy('location').orderBy(F.col('date').asc())
 
-Значения NULL - отсуствующее предыдущее значение для первой строки преобразуем в 0.0
+Значения NULL - отсуствующее предыдущее значение для текущей строки преобразуем в 0.0
 df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))
 
-или отсуствующее предыдущее знаение для первой строки заменяем на значение самой первой строки
+или отсуствующее предыдущее значение для текущей строки заменяем на значение самой текущей строки
 df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.col('new_cases')))
 
 df_lw_rus = df_lw_rus.withColumn('delta', F.col('new_cases') - F.col('yesterday_cases'))
