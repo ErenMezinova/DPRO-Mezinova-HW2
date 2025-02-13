@@ -15,7 +15,7 @@ exec "${SPARK_HOME}"/bin/spark-submit pyspark-shell-main
 
 ```
 from pyspark.sql import functions as F
-from pyspark.sql import window
+from pyspark.sql import Window
 
 df = spark.read.option('inferSchema','true').option('header', 'true').csv("/opt/bitnami/spark/covid-data.csv")
 df.createOrReplaceTempView("df_view")
@@ -24,7 +24,7 @@ df.createOrReplaceTempView("df_view")
 ---------------------------------------------------------------------------------------------------------------
 **1. Задание: Выберите 15 стран с наибольшим процентом переболевших на 31 марта (в выходящем датасете необходимы колонки: iso_code, страна, процент переболевших)**
 
-Решение: так как точная дата не указана, то пусть целевая дата - 31.03.2021. Так как не указано, как считать процент ПЕРЕБОЛЕВШИХ, то пусть будет по следующей формуле. (total_cases - total_deaths) / total_cases * 100 - число заболевших, но выживших делим на всех заболевших
+Решение: так как точная дата не указана, то пусть целевая дата - 31.03.2021. Так как не указано, как считать процент ПЕРЕБОЛЕВШИХ, то пусть будет по следующей формуле. (total_cases - total_deaths) / **population** * 100 - число заболевших, но выживших делим на население страны
 
 ```
 df_march31 = spark.sql('''SELECT *
@@ -32,32 +32,30 @@ df_march31 = spark.sql('''SELECT *
 	   WHERE date = to_date('3/31/2021', 'M/dd/yyyy') 
         ''')
 
-df_march31.select('iso_code', 'location', F.round((F.col('total_cases') - F.col('total_deaths')) / F.col('total_cases') *100, 2).alias('survivors_percent')).select('*').orderBy(F.col('survivors_percent').desc()).show(15)
+df_march31.select('iso_code', 'location', F.round((F.col('total_cases') - F.col('total_deaths')) / F.col('population') *100, 2).alias('survivors_percent')).select('*').orderBy(F.col('survivors_percent').desc()).show(15)
 
 ```
 
-![Image](https://github.com/user-attachments/assets/cc18c227-cd34-4f0f-b2ab-7fd551e76db0)
-
 ```
-+--------+--------------------+-----------------+
-|iso_code|            location|survivors_percent|
-+--------+--------------------+-----------------+
-|     SGP|           Singapore|            99.95|
-|     MNG|            Mongolia|            99.91|
-|     BTN|              Bhutan|            99.89|
-|     QAT|               Qatar|            99.84|
-|     BDI|             Burundi|            99.79|
-|     MDV|            Maldives|            99.72|
-|     ERI|             Eritrea|             99.7|
-|     ARE|United Arab Emirates|            99.68|
-|     THA|            Thailand|            99.67|
-|     BHR|             Bahrain|            99.64|
-|     MYS|            Malaysia|            99.63|
-|     KHM|            Cambodia|            99.55|
-|     ISL|             Iceland|            99.53|
-|     SYC|          Seychelles|            99.47|
-|     CIV|       Cote d'Ivoire|            99.44|
-+--------+--------------------+-----------------+
++--------+-------------+-----------------+
+|iso_code|     location|survivors_percent|
++--------+-------------+-----------------+
+|     AND|      Andorra|             15.4|
+|     MNE|   Montenegro|            14.32|
+|     CZE|      Czechia|            14.06|
+|     SMR|   San Marino|            13.69|
+|     SVN|     Slovenia|            10.18|
+|     LUX|   Luxembourg|             9.73|
+|     ISR|       Israel|             9.55|
+|     USA|United States|             9.04|
+|     SRB|       Serbia|             8.75|
+|     BHR|      Bahrain|             8.46|
+|     PAN|       Panama|             8.09|
+|     EST|      Estonia|             7.95|
+|     PRT|     Portugal|             7.89|
+|     SWE|       Sweden|             7.84|
+|     LTU|    Lithuania|             7.81|
++--------+-------------+-----------------+
 ```
 
 ---------------------------------------------------------------------------------------------------------------
@@ -85,8 +83,6 @@ df_lw_max = df_lw_max.withColumn('row_number', row_number().over(df_lwm_window))
 df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number')==1).orderBy(F.col('max(new_cases)').desc()).show(10)
 ```
 
-![Image](https://github.com/user-attachments/assets/96400f85-a014-4a56-8d5b-d28cb7baee0b)
-
 ```
 +----------+-------------+--------------+
 |      date|     location|max(new_cases)|
@@ -109,25 +105,25 @@ df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number'
 ---------------------------------------------------------------------------------------------------------------
 **3. Задание: Посчитайте изменение случаев относительно предыдущего дня в России за последнюю неделю марта 2021. (например: в россии вчера было 9150 , сегодня 8763, итог: -387) (в выходящем датасете необходимы колонки: число, кол-во новых случаев вчера, кол-во новых случаев сегодня, дельта)**
 
-Решение:
+Решение: берем подготовленные данные из второго задания - данные за последнюю неделю марта 2021 года и оставляем только Россию. Значения NULL преобразуем в 0.0
 
 ```
 df_lw_rus = df_lastweek.select('date', 'location', 'new_cases').where(F.col('location').startswith('Rus'))
 
-df_lwrus_window = Window.partitionBy('location').orderBy(asc('date'))
-df_lw_rus = df_lw_rus.withColumn('yesterday_cases', lag('new_cases').over(df_lwrus_window))
+df_lwrus_window = Window.partitionBy('location').orderBy(F.col('date').asc())
+**df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))**
 df_lw_rus = df_lw_rus.withColumn('delta', F.col('new_cases') - F.col('yesterday_cases'))
 
 df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
 ```
 
-![Image](https://github.com/user-attachments/assets/306b9ea8-799f-44a3-91f9-089719c39054)
+
 
 ```
 +----------+---------------+---------+------+
 |      date|yesterday_cases|new_cases| delta|
 +----------+---------------+---------+------+
-|2021-03-25|           NULL|   9128.0|  NULL|
+|2021-03-25|            0.0|   9128.0|9128.0|
 |2021-03-26|         9128.0|   9073.0| -55.0|
 |2021-03-27|         9073.0|   8783.0|-290.0|
 |2021-03-28|         8783.0|   8979.0| 196.0|
