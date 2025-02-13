@@ -105,20 +105,24 @@ df_lw_max.select('date', 'location', 'max(new_cases)').filter(F.col('row_number'
 ---------------------------------------------------------------------------------------------------------------
 **3. Задание: Посчитайте изменение случаев относительно предыдущего дня в России за последнюю неделю марта 2021. (например: в россии вчера было 9150 , сегодня 8763, итог: -387) (в выходящем датасете необходимы колонки: число, кол-во новых случаев вчера, кол-во новых случаев сегодня, дельта)**
 
-Решение: берем подготовленные данные из второго задания - данные за последнюю неделю марта 2021 года и оставляем только Россию. Значения NULL преобразуем в 0.0
+Решение: берем подготовленные данные из второго задания - данные за последнюю неделю марта 2021 года и оставляем только Россию. 
 
 ```
 df_lw_rus = df_lastweek.select('date', 'location', 'new_cases').where(F.col('location').startswith('Rus'))
 
 df_lwrus_window = Window.partitionBy('location').orderBy(F.col('date').asc())
-df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))
-df_lw_rus = df_lw_rus.withColumn('delta', F.col('new_cases') - F.col('yesterday_cases'))
 
+Значения NULL - отсуствующее предыдущее значение для первой строки преобразуем в 0.0
+df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.lit(0.0)))
+
+или отсуствующее предыдущее знаение для первой строки заменяем на значение самой первой строки
+df_lw_rus = df_lw_rus.withColumn('yesterday_cases', F.coalesce(F.lag('new_cases').over(df_lwrus_window), F.col('new_cases')))
+
+df_lw_rus = df_lw_rus.withColumn('delta', F.col('new_cases') - F.col('yesterday_cases'))
 df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
 ```
 
-
-
+NULL -> 0.0
 ```
 +----------+---------------+---------+------+
 |      date|yesterday_cases|new_cases| delta|
@@ -133,5 +137,19 @@ df_lw_rus.select('date', 'yesterday_cases', 'new_cases',  'delta').show()
 +----------+---------------+---------+------+
 ```
 
+NULL -> new_cases
+```
++----------+---------------+---------+------+
+|      date|yesterday_cases|new_cases| delta|
++----------+---------------+---------+------+
+|2021-03-25|         9128.0|   9128.0|   0.0|
+|2021-03-26|         9128.0|   9073.0| -55.0|
+|2021-03-27|         9073.0|   8783.0|-290.0|
+|2021-03-28|         8783.0|   8979.0| 196.0|
+|2021-03-29|         8979.0|   8589.0|-390.0|
+|2021-03-30|         8589.0|   8162.0|-427.0|
+|2021-03-31|         8162.0|   8156.0|  -6.0|
++----------+---------------+---------+------+
+```
 
 ---------------------------------------------------------------------------------------------------------------
